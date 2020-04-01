@@ -38,8 +38,8 @@ eta = theta(6);          % unobserved removal rate
 n = theta(7);            % inibitive strength ... like a hill constant
 kappa = theta(8);        % initial under-estimate factor
 
-% find first record of confimr cases
-J = find(Data.C);
+% intialise from first 100 confirmed cases
+J = find((Data.C + Data.R + Data.D) >= 100);
 start = J(1);
 
 %copy initial condition

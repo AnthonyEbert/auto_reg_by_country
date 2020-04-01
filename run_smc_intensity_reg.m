@@ -30,8 +30,8 @@
 rng(1337,'twister')
 
 %%
-region_id = 'China'; % 
-iso_id = 'CHN';
+region_id = 'Italy'; % 
+iso_id = 'ITA';
 province_id = 'total';
 
 %% data store
@@ -90,6 +90,13 @@ end
 %% Synthetic data for identifiability test
 %Data = simuldata_reg(Data,[0.01,41,0.1,0.05,0.1,1,1/2,1])
 
+%% Back testing (only fit up to day T-test_days and use remainer to validate)
+test_data = Data;
+test_days = 10
+T = length(Data.C);
+Data.C(T-test_days:T) = [];
+Data.R(T-test_days:T) = [];
+Data.D(T-test_days:T) = [];
 
 %% set-up ABC-SMC 
 % the number of particles
@@ -106,7 +113,7 @@ p_acc_min = 0.005;
 % define prior
 prior.num_params = 8; % [\alpha_0,\alpha,\beta,\gamma,\alpha_tau]
 prior.p1 = [0.0  ,0.0, 0.0,0.0,0.0,0.0,0.0,0];
-prior.p2 = [1.0 ,100, 1.0, 1.0, 1.0, 1.0,1,2];
+prior.p2 = [2.0 ,100.0, 1.0, 1.0, 1.0, 1.0,2,2];
 prior.sampler = @() [unifrnd(prior.p1,prior.p2)]; 
 prior.pdf = @(theta) prod([unifpdf(theta,prior.p1,prior.p2)]);
 prior.trans_f = @(theta) [theta];
@@ -121,7 +128,7 @@ dist_func = @(S_d,S_s) sqrt(sum((S_d(:) - S_s(:)).^2));
 smry_func = @smry;
 
 % run SMC sampler
-[part_vals, part_sim, part_s, sims,epsilon_t,p_acc_t] = smc_abc_rw(Data,...
+[part_vals, part_sim, part_s, sims,epsilon_t,p_acc_t] = smc_abc_rw_par(Data,...
                                        sim_func,dist_func,smry_func,prior,N,...
                                        epsilon_final,a,c,p_acc_min);
 %% save results
@@ -139,8 +146,8 @@ save(['results_smc_intensity_poisson_reg',results.name,'_',results.ISO3166alpha3
 %% load output 
 load(['results_smc_intensity_poisson_reg',results.name,'_',results.ISO3166alpha3,'.mat'],'results');
 
-% plot marginal posterior densities
-figure;
+%% plot marginal posterior densities
+figure(1);
 lab = {'\alpha_0','\alpha','\beta','\gamma','\delta','\eta','n','\kappa'};
 for i = 1:8
     subplot(2,4,i);
@@ -150,19 +157,122 @@ for i = 1:8
 end
 title(sprintf('%s %s',results.name,results.ISO3166alpha3))
 
-% plot samples of posterior predictve distribution against data
-figure;
+%% plot samples of posterior predictve distribution against data
+%figure;
 T = length(results.data.C);
-for i=1:1000
-    ha = plot((results.part_sim(i,1:T))','-b'); ha.Color(4) = 0.05;
-    hold on;
-    hb = plot(results.part_sim(i,T+1:2*T)','-','Color',[237,177,32]/255); hb.Color(4) = 0.05;
-    hc = plot(results.part_sim(i,2*T+1:3*T)','-r'); hc.Color(4) = 0.05;
-end
-title(sprintf('%s %s',results.name,results.ISO3166alpha3))
+optsf = [];
+optsf.handle = figure(3);
+optsf.line_width = 1;
+optsf.alpha = 0.5;
+optsf.error = 'std';
+optsf.color_area = [128 193 219]./255;    % Blue theme
+optsf.color_line = [ 52 148 186]./255;
+optsf = plot_areaerrorbar(results.part_sim(:,1:T),optsf)
+optsf.color_area = [237,177,32]./255;    % yellow theme
+optsf.color_line = [237,177,32]./(2*255);
+optsf = plot_areaerrorbar(results.part_sim(:,T+1:2*T),optsf)
+optsf.color_area = [243 169 114]./255;    % Orange theme
+optsf.color_line = [236 112  22]./255;
+optsf = plot_areaerrorbar(results.part_sim(:,2*T+1:3*T),optsf)
+hold on
+title(sprintf('Fit %s %s',results.name,results.ISO3166alpha3))
 plot(results.data.C,'+k');
 plot(results.data.R,'+k');
 plot(results.data.D,'+k');
 xlabel('time');
 ylabel('counts')
+
+pred_C = mean(results.part_sim(:,1:T))';
+pred_R = mean(results.part_sim(:,T+1:2*T))';
+pred_D = mean(results.part_sim(:,2*T+1:3*T))';
+
+chisq_C = ((pred_C - results.data.C).^2)./var(results.part_sim(:,1:T))';
+chisq_R = ((pred_R - results.data.R).^2)./var(results.part_sim(:,T+1:2*T))';
+chisq_D = ((pred_D - results.data.D).^2)./var(results.part_sim(:,2*T+1:3*T))';
+%
+fit_T = table(pred_C,pred_R,pred_D,results.data.C,results.data.R,results.data.D,chisq_C,chisq_R,chisq_D,...
+    'VariableNames',{'pred_C','pred_R','pred_D','obs_C','obs_R','obs_D','chisq_C','chisq_R','chisq_D'});
+
+%% forward predictions for unobserved future
+%figure;
+pred_days = 10;
+data_pred = results.data;
+T = length(test_data.C);
+optsf = [];
+optsf.handle = figure(4);
+optsf.line_width = 1;
+optsf.alpha = 0.5;
+optsf.error = 'std';
+T = length(data_pred.C);
+% append 10 extra days for simulation
+data_pred.C = [data_pred.C;zeros(pred_days,1)];
+data_pred.D = [data_pred.D;zeros(pred_days,1)];
+data_pred.R = [data_pred.R;zeros(pred_days,1)];
+predsims = zeros(N,3*T);
+for i=1:1000
+    D_s = sim_func(data_pred,part_vals(i,:));
+    predsims(i,:) = smry(D_s);
+end
+optsf.color_area = [128 193 219]./255;    % Blue theme
+optsf.color_line = [ 52 148 186]./255;
+optsf = plot_areaerrorbar(predsims(:,1:T),optsf)
+optsf.color_area = [237,177,32]./255;    % yellow theme
+optsf.color_line = [237,177,32]./(2*255);
+optsf = plot_areaerrorbar(predsims(:,T+1:2*T),optsf)
+optsf.color_area = [243 169 114]./255;    % Orange theme
+optsf.color_line = [236 112  22]./255;
+optsf = plot_areaerrorbar(predsims(:,2*T+1:3*T),optsf)
+hold on
+title(sprintf('Predictions %s %s',results.name,results.ISO3166alpha3))
+plot(results.data.C,'+k');
+plot(results.data.R,'+k');
+plot(results.data.D,'+k');
+xlabel('time');
+ylabel('counts')
+
+
+
+%% Back testing validation plot forward predictions data
+T = length(test_data.C);
+optsf = [];
+optsf.handle = figure(5);
+optsf.line_width = 1;
+optsf.alpha = 0.5;
+optsf.error = 'std';
+predsims = zeros(N,3*T);
+for i=1:1000
+   D_s = sim_func(test_data,part_vals(i,:));
+   predsims(i,:) = smry(D_s);
+end
+optsf.color_area = [128 193 219]./255;    % Blue theme
+optsf.color_line = [ 52 148 186]./255;
+optsf = plot_areaerrorbar(predsims(:,1:T),optsf)
+optsf.color_area = [237,177,32]./255;    % yellow theme
+optsf.color_line = [237,177,32]./(2*255);
+optsf = plot_areaerrorbar(predsims(:,T+1:2*T),optsf)
+optsf.color_area = [243 169 114]./255;    % Orange theme
+optsf.color_line = [236 112  22]./255;
+optsf = plot_areaerrorbar(predsims(:,2*T+1:3*T),optsf)
+hold on
+title(sprintf('Predictions %s %s',results.name,results.ISO3166alpha3))
+plot(results.data.C,'+k');
+plot(results.data.R,'+k');
+plot(results.data.D,'+k');
+plot(test_data.C,'sk');
+plot(test_data.R,'sk');
+plot(test_data.D,'sk');
+xlabel('time');
+ylabel('counts')
+
+pred_C = mean(predsims(:,1:T))';
+pred_R = mean(predsims(:,T+1:2*T))';
+pred_D = mean(predsims(:,2*T+1:3*T))';
+
+chisq_C = ((pred_C - test_data.C).^2)./var(predsims(:,1:T))';
+chisq_R = ((pred_R - test_data.R).^2)./var(predsims(:,T+1:2*T))';
+chisq_D = ((pred_D - test_data.D).^2)./var(predsims(:,2*T+1:3*T))';
+%
+pred_T = table([pred_C,pred_R,pred_D,test_data.C,test_data.R,test_data.D,chisq_C,chisq_R,chisq_D,...
+   'VariableNames',{'pred_C','pred_R','pred_D','obs_C','obs_R','obs_D','chisq_C','chisq_R','chisq_D'})
+
 
