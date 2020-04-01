@@ -35,7 +35,7 @@ iso_id = 'ITA';
 province_id = 'total';
 
 %% data store
-DATA_DIR = '../Data/'
+DATA_DIR = '../'
 
 % load transition matrix for confirmed cases by country
 opts = detectImportOptions([DATA_DIR,'COVID19data/data-raw/covid19_sorted.csv']);
@@ -45,7 +45,7 @@ for i=1:length(opts.VariableNames)
     switch opts.VariableNames{i}
         case 'alpha3'
             opts.VariableTypes{i} = 'categorical';
-        case 'Country_Region'
+        case 'Country_Regions'
             opts.VariableTypes{i} = 'categorical';
         case 'Province_State'
             opts.VariableTypes{i} = 'categorical';
@@ -91,12 +91,12 @@ end
 %Data = simuldata_reg(Data,[0.01,41,0.1,0.05,0.1,1,1/2,1])
 
 %% Back testing (only fit up to day T-test_days and use remainer to validate)
-test_data = Data;
-test_days = 10
-T = length(Data.C);
-Data.C(T-test_days:T) = [];
-Data.R(T-test_days:T) = [];
-Data.D(T-test_days:T) = [];
+%test_data = Data;
+%test_days = 10
+%T = length(Data.C);
+%Data.C(T-test_days:T) = [];
+%Data.R(T-test_days:T) = [];
+%Data.D(T-test_days:T) = [];
 
 %% set-up ABC-SMC 
 % the number of particles
@@ -272,7 +272,7 @@ chisq_C = ((pred_C - test_data.C).^2)./var(predsims(:,1:T))';
 chisq_R = ((pred_R - test_data.R).^2)./var(predsims(:,T+1:2*T))';
 chisq_D = ((pred_D - test_data.D).^2)./var(predsims(:,2*T+1:3*T))';
 %
-pred_T = table([pred_C,pred_R,pred_D,test_data.C,test_data.R,test_data.D,chisq_C,chisq_R,chisq_D,...
+pred_T = table([pred_C,pred_R,pred_D,test_data.C,test_data.R,test_data.D,chisq_C,chisq_R,chisq_D],...
    'VariableNames',{'pred_C','pred_R','pred_D','obs_C','obs_R','obs_D','chisq_C','chisq_R','chisq_D'})
 
 
