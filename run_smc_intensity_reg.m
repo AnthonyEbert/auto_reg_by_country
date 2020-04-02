@@ -197,17 +197,17 @@ fit_T = table(pred_C,pred_R,pred_D,results.data.C,results.data.R,results.data.D,
 %figure;
 pred_days = 10;
 data_pred = results.data;
-T = length(test_data.C);
+%T = length(test_data.C);
 optsf = [];
 optsf.handle = figure(4);
 optsf.line_width = 1;
 optsf.alpha = 0.5;
 optsf.error = 'std';
-T = length(data_pred.C);
 % append 10 extra days for simulation
 data_pred.C = [data_pred.C;zeros(pred_days,1)];
 data_pred.D = [data_pred.D;zeros(pred_days,1)];
 data_pred.R = [data_pred.R;zeros(pred_days,1)];
+T = length(data_pred.C);
 predsims = zeros(N,3*T);
 for i=1:1000
     D_s = sim_func(data_pred,part_vals(i,:));
