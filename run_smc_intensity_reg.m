@@ -129,7 +129,7 @@ dist_func = @(S_d,S_s) sqrt(sum((S_d(:) - S_s(:)).^2));
 % summary statistic
 smry_func = @smry;
 
-% run SMC sampler
+%% run SMC sampler
 [part_vals, part_sim, part_s, sims,epsilon_t,p_acc_t] = smc_abc_rw_par(Data,...
                                        sim_func,dist_func,smry_func,prior,N,...
                                        epsilon_final,a,c,p_acc_min);
@@ -209,7 +209,7 @@ data_pred.D = [data_pred.D;zeros(pred_days,1)];
 data_pred.R = [data_pred.R;zeros(pred_days,1)];
 T = length(data_pred.C);
 predsims = zeros(N,3*T);
-for i=1:1000
+for i=1:N
     D_s = sim_func(data_pred,results.part_vals(i,:));
     predsims(i,:) = smry(D_s);
 end
