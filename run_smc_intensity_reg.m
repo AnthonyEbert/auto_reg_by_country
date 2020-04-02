@@ -33,6 +33,8 @@ rng(1337,'twister')
 region_id = 'Italy'; % 
 iso_id = 'ITA';
 province_id = 'total';
+results.name = sprintf('%s%s',region_id,province_id);
+results.ISO3166alpha3 = iso_id;
 
 %% data store
 DATA_DIR = '../'
@@ -139,8 +141,6 @@ results.sims = sims;
 results.epsilon = epsilon_t;
 results.p_acc_t = p_acc_t;
 results.data = Data;
-results.name = sprintf('%s%s',region_id,province_id);
-results.ISO3166alpha3 = iso_id;
 % save output
 save(['results_smc_intensity_poisson_reg',results.name,'_',results.ISO3166alpha3,'.mat'],'results');
 %% load output 
@@ -210,7 +210,7 @@ data_pred.R = [data_pred.R;zeros(pred_days,1)];
 T = length(data_pred.C);
 predsims = zeros(N,3*T);
 for i=1:1000
-    D_s = sim_func(data_pred,part_vals(i,:));
+    D_s = sim_func(data_pred,results.part_vals(i,:));
     predsims(i,:) = smry(D_s);
 end
 optsf.color_area = [128 193 219]./255;    % Blue theme
