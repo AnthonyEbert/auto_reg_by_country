@@ -229,7 +229,8 @@ plot(results.data.R,'+k');
 plot(results.data.D,'+k');
 xlabel('time');
 ylabel('counts')
-
+save(['smc_intensity_poisson_reg_predictions',results.name,'_',results.ISO3166alpha3,'.fig'])
+saveas(gcf,['smc_intensity_poisson_reg_predictions',results.name,'_',results.ISO3166alpha3,'.pdf'])
 
 
 %% Back testing validation plot forward predictions data
