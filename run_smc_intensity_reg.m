@@ -94,11 +94,12 @@ end
 
 %% Back testing (only fit up to day T-test_days and use remainer to validate)
 %test_data = Data;
-%test_days = 10
-%T = length(Data.C);
-%Data.C(T-test_days:T) = [];
-%Data.R(T-test_days:T) = [];
-%Data.D(T-test_days:T) = [];
+test_data = Data;
+test_days = 5;
+T = length(Data.C);
+Data.C(T-test_days:T) = [];
+Data.R(T-test_days:T) = [];
+Data.D(T-test_days:T) = [];
 
 %% set-up ABC-SMC 
 % the number of particles
@@ -232,6 +233,7 @@ ylabel('counts')
 save(['smc_intensity_poisson_reg_predictions',results.name,'_',results.ISO3166alpha3,'.fig'])
 saveas(gcf,['smc_intensity_poisson_reg_predictions',results.name,'_',results.ISO3166alpha3,'.pdf'])
 
+writetable(fit_T, ['smc_intensity_poisson_reg_predictions',results.name,'_',results.ISO3166alpha3,'.csv'])
 
 %% Back testing validation plot forward predictions data
 T = length(test_data.C);
@@ -242,7 +244,7 @@ optsf.alpha = 0.5;
 optsf.error = 'std';
 predsims = zeros(N,3*T);
 for i=1:1000
-   D_s = sim_func(test_data,part_vals(i,:));
+   D_s = sim_func(test_data,results.part_vals(i,:));
    predsims(i,:) = smry(D_s);
 end
 optsf.color_area = [128 193 219]./255;    % Blue theme
@@ -269,11 +271,14 @@ pred_C = mean(predsims(:,1:T))';
 pred_R = mean(predsims(:,T+1:2*T))';
 pred_D = mean(predsims(:,2*T+1:3*T))';
 
-chisq_C = ((pred_C - test_data.C).^2)./var(predsims(:,1:T))';
+chisq_C =  ((pred_C - test_data.C).^2)./var(predsims(:,1:T))';
 chisq_R = ((pred_R - test_data.R).^2)./var(predsims(:,T+1:2*T))';
 chisq_D = ((pred_D - test_data.D).^2)./var(predsims(:,2*T+1:3*T))';
 %
-pred_T = table([pred_C,pred_R,pred_D,test_data.C,test_data.R,test_data.D,chisq_C,chisq_R,chisq_D],...
-   'VariableNames',{'pred_C','pred_R','pred_D','obs_C','obs_R','obs_D','chisq_C','chisq_R','chisq_D'})
+pred_T = table(pred_C,pred_R,pred_D,test_data.C,test_data.R,test_data.D,chisq_C,chisq_R,chisq_D,...
+   'VariableNames',{'pred_C','pred_R','pred_D','obs_C','obs_R','obs_D','chisq_C','chisq_R','chisq_D'});
 
+save(['smc_intensity_poisson_reg_backtesting',results.name,'_',results.ISO3166alpha3,'.fig'])
+saveas(gcf,['smc_intensity_poisson_reg_backtesting',results.name,'_',results.ISO3166alpha3,'.pdf'])
 
+writetable(pred_T, ['smc_intensity_poisson_reg_backtesting',results.name,'_',results.ISO3166alpha3,'.csv'])
