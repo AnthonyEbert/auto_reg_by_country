@@ -14,10 +14,11 @@
 %           * options.line_width:   Mean line width.                      %
 %           * options.x_axis:       X time vector.                        %
 %           * options.error:        Type of error to plot (+/-).          %
-%                   if 'std',       one standard deviation;               %
+%                   if 'std',       one and two standard deviations;      %
 %                   if 'sem',       standard error mean;                  %
 %                   if 'var',       one variance;                         %
-%                   if 'c95',       95% confidence interval.              %
+%                   if 'c95',       95% confidence interval;              %
+%                   if 'credint'    95% and 90% Bayesian credible interval%
 % ----------------------------------------------------------------------- %
 %   Example of use:                                                       %
 %       data = repmat(sin(1:0.01:2*pi),100,1);                            %
@@ -28,6 +29,7 @@
 %   Date:    30/04/2018                                                   %
 %   E-mail:  vicmarcag (at) gmail (dot) com                               %
 %   Modified by: David Warne
+%   E-mail:  david.warne@qut.edu.au
 %   Data:    01/04/2020
 % ----------------------------------------------------------------------- %
 function [options] = plot_areaerrorbar(data,options)
@@ -55,18 +57,41 @@ function [options] = plot_areaerrorbar(data,options)
         case 'sem', error = (data_std./sqrt(size(data,1)));
         case 'var', error = (data_std.^2);
         case 'c95', error = (data_std./sqrt(size(data,1))).*1.96;
+    
     end
-    
-    % Plotting the result
-    figure(options.handle);
-    hold on; % added DJW
-    x_vector = [options.x_axis', fliplr(options.x_axis')];
-    patch = fill(x_vector, [data_mean+error,fliplr(data_mean-error)], options.color_area);
-    set(patch, 'edgecolor', 'none');
-    set(patch, 'FaceAlpha', options.alpha);
-    hold on;
-    plot(options.x_axis, data_mean, 'color', options.color_line, ...
-        'LineWidth', options.line_width);
-    hold off;
-    
+
+    if strcmp(options.error,'credint')
+        % Plotting the result
+        figure(options.handle);
+        % computing quantiles for 99% 95% 90% credible intervals
+        Q = quantile(data,[0.5;0.05;0.95;0.025;0.975])
+
+        hold on; % added DJW
+        x_vector = [options.x_axis', fliplr(options.x_axis')];
+        patch95 = fill(x_vector, [Q(5,:),fliplr(Q(4,:))], options.color_area); 
+        set(patch95, 'edgecolor', 'none'); 
+        set(patch95, 'FaceAlpha', options.alpha/2);
+        patch90 = fill(x_vector, [Q(3,:),fliplr(Q(2,:))], options.color_area);
+        set(patch90, 'edgecolor', 'none');
+        set(patch90, 'FaceAlpha', options.alpha/2);
+        hold on;
+        plot(options.x_axis, Q(1,:), 'color', options.color_line, ...
+            'LineWidth', options.line_width);
+        hold off;
+    else        
+        % Plotting the result
+        figure(options.handle);
+        hold on; % added DJW
+        x_vector = [options.x_axis', fliplr(options.x_axis')];
+        patch = fill(x_vector, [data_mean+2*error,fliplr(data_mean-2*error)], options.color_area); 
+        set(patch, 'edgecolor', 'none'); 
+        set(patch, 'FaceAlpha', options.alpha*0.75);
+        patch2 = fill(x_vector, [data_mean+error,fliplr(data_mean-error)], options.color_area);
+        set(patch2, 'edgecolor', 'none');
+        set(patch2, 'FaceAlpha', options.alpha);
+        hold on;
+        plot(options.x_axis, data_mean, 'color', options.color_line, ...
+            'LineWidth', options.line_width);
+        hold off;
+    end
 end
