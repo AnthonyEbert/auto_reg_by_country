@@ -41,8 +41,6 @@ DATA_DIR = '../'
 
 % load transition matrix for confirmed cases by country
 opts = detectImportOptions([DATA_DIR,'COVID19data/data-raw/covid19_sorted.csv']);
-% note: this is a bit verbose, but it is the most effective way I can get
-% to ensure the order and number of columns is arbitrary
 for i=1:length(opts.VariableNames)
     switch opts.VariableNames{i}
         case 'alpha3'
@@ -61,8 +59,6 @@ T_d = readtable([DATA_DIR,'COVID19data/data-raw/covid19_sorted.csv'],opts);
 
 % load population table
 opts = detectImportOptions([DATA_DIR,'COVID-19_ISO-3166/full_list.csv']);
-% note: this is a bit verbose, but it is the most effective way I can get
-% to ensure the order and number of columns is arbitrary
 for i=1:length(opts.VariableNames)
     switch opts.VariableNames{i}
         case 'alpha3'
