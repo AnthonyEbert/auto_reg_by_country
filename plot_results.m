@@ -25,7 +25,7 @@ set(groot, 'defaulttextInterpreter','latex');
 % load population table
 
 %% data store
-DATA_DIR = '../Data/'
+DATA_DIR = '../../Data/'
 
 % load transition matrix for confirmed cases by country
 opts = detectImportOptions([DATA_DIR,'COVID19data/data-raw/covid19_sorted_14apr.csv']);
@@ -68,9 +68,12 @@ smry_func = @smry;
 
 lab = {'\alpha_0','\alpha','\beta','\gamma','\delta','\eta','n','\kappa','R_e/R_0','g(C_T)/g(C_0)','\delta/\beta','(\delta+\beta)/\gamma'};
 ii = 1;
+
+fid = fopen('./point_estimates_13042020.csv','w');
+fprintf(fid,'"ISO-3166-alpha3","alpha_0","alpha","beta","gamma","delta","eta","n","kappa"\n');
 for j=1:252
     try
-        load(['./results_iso3166_R',num2str(j),'/results_smc_intensity_poisson_reg',num2str(j),'.mat'],'results');
+        load(['./results/results/13042020/results_iso3166_R',num2str(j),'/results_smc_intensity_poisson_reg',num2str(j),'.mat'],'results');
         results_array(ii) = results;
         T = length(results_array(ii).data.C);
         C0 = zeros(size(results_array(ii).part_vals,1),1);
@@ -126,8 +129,9 @@ for i=1:length(results_array)
     CI.low(i,:) = quantile(results_array(i).part_vals,0.25);
     CI.high(i,:) = quantile(results_array(i).part_vals,0.75);
     CI.c95(i,:) = std(results_array(i).part_vals)*1.96/sqrt(size(results_array(i).part_vals,1));
-    
+    fprintf(fid,'"%s",%g,%g,%g,%g,%g,%g,%g,%g\n',results_array(i).ISO3166alpha3,point_ests(i,1),point_ests(i,2),point_ests(i,3),point_ests(i,4),point_ests(i,5),point_ests(i,6),point_ests(i,7),point_ests(i,8))        
 end
+fclose(fid);
 
 %% plot predictions 
 fid = 1
